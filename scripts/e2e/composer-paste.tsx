@@ -718,6 +718,25 @@ globalThis.composerPasteProbe = async () => {
     assert(controller.fileReferences.length === 0,
       "typing a removed chip's token must not resurrect an attachment");
 
+    // A batched away-and-back project change must invalidate deleted history,
+    // too: native undo must never attach the old relative path to a new context.
+    const priorWorkspace = useAppStore.getState().workspace;
+    await reset("inspect \uE050 please", 8, 9);
+    flushSync(() => controller.applyEditorDraft("inspect \uE050 please", [undoReference], 9));
+    await new Promise(requestAnimationFrame);
+    const workspaceUndoEditor = controller.ref.current!;
+    workspaceUndoEditor.focus();
+    select(workspaceUndoEditor, 8, 9);
+    assert(document.execCommand("delete"), "workspace undo deletion unavailable");
+    await new Promise(requestAnimationFrame);
+    flushSync(() => {
+      useAppStore.setState({ workspace: { path: "/other-project", name: "Other" } });
+      useAppStore.setState({ workspace: priorWorkspace });
+    });
+    assert(document.execCommand("undo"), "workspace native undo unavailable");
+    await new Promise(requestAnimationFrame);
+    assert(controller.fileReferences.length === 0,
+      "undo resurrected a reference after a batched workspace round-trip");
     flushSync(() => root.render(null));
     resetComposerDraftCache();
 
