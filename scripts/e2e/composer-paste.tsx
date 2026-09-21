@@ -1,3 +1,4 @@
+import { serializeInlineComposerFileReferences } from "@pi-desktop/shared";
 import { useComposerSubmit } from "../../apps/desktop/src/features/chat/composer/hooks/useComposerSubmit";
 import { verifyComposerSubmission } from "./composer-submission";
 import { ComposerImageAttachments } from "../../apps/desktop/src/features/chat/composer/ComposerImageAttachments";
@@ -190,6 +191,47 @@ globalThis.composerPasteProbe = async () => {
     selection.addRange(range);
   };
   try {
+    // Native undo must restore reference metadata as well as the visible chip.
+    await reset("inspect \uE050 please", 8, 9);
+    const undoReference = createFileReference("src/main.ts", "main.ts", "paste-a", { token: "\uE050" });
+    flushSync(() => controller.applyEditorDraft("inspect \uE050 please", [undoReference], 9));
+    await new Promise(requestAnimationFrame);
+    const undoEditor = controller.ref.current!;
+    undoEditor.focus();
+    select(undoEditor, 8, 9);
+    assert(document.execCommand("delete"), "native chip deletion unavailable");
+    await new Promise(requestAnimationFrame);
+    assert(document.execCommand("undo"), "native chip undo unavailable");
+    await new Promise(requestAnimationFrame);
+    assert(controller.fileReferences.some(r => r.path === "src/main.ts"), "Undo restored the chip without its file reference metadata");
+    assert(serializeInlineComposerFileReferences(readEditorValue(undoEditor), controller.activeFileReferences) === "inspect @src/main.ts please",
+      "undo must restore the path used by submission");
+    assert(document.execCommand("redo"), "native chip redo unavailable");
+    await new Promise(requestAnimationFrame);
+    assert(controller.fileReferences.length === 0, "redo retained a deleted attachment");
+    assert(document.execCommand("undo"), "second native chip undo unavailable");
+    await new Promise(requestAnimationFrame);
+    assert(controller.fileReferences.length === 1, "repeated undo lost the attachment");
+    render("paste-b");
+    await new Promise(requestAnimationFrame);
+    assert(controller.fileReferences.length === 0, "undo metadata leaked into another chat");
+    render("paste-a");
+    await new Promise(requestAnimationFrame);
+    assert(controller.fileReferences.some(r => r.path === "src/main.ts"),
+      "the restored reference did not survive a chat round-trip");
+    const restoredEditor = controller.ref.current!;
+    restoredEditor.focus();
+    select(restoredEditor, 8, 9);
+    assert(document.execCommand("delete"), "second chip deletion unavailable");
+    await new Promise(requestAnimationFrame);
+    assert(document.execCommand("insertText", false, "\uE050"), "private-use text insertion unavailable");
+    await new Promise(requestAnimationFrame);
+    assert(controller.fileReferences.length === 0,
+      "typing a removed chip's token must not resurrect an attachment");
+
+    flushSync(() => root.render(null));
+    resetComposerDraftCache();
+
     // Keep the source attachment snapshot when a paste finishes in another session.
     await reset("keep \uE010 ", 7, 7);
     const originalReference = createFileReference("/scratch/paste-a/original.txt", "original.txt", "paste-a", { token: "\uE010", kind: "file" });
@@ -685,6 +727,7 @@ globalThis.composerPasteProbe = async () => {
       fullComposerSubmissionAndOverflow: true,
       mixedShortText: true,
       multilineAndUndoRedo: true,
+      fileReferenceUndoRedo: true,
       crossBreakAndChipSelection: true,
       mixedLongText: true,
       imageOnly: true,

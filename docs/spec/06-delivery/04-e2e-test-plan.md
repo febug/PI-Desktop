@@ -1463,6 +1463,16 @@ identify the platform validation still needed.
   `session-switch-performance.test.mjs`); full UI scenario Draft
 
 
+#### Composer file-reference undo regression
+
+- Add a file reference to an unsent draft, select the chip, delete it, then
+  undo and redo with the native editor shortcuts. Undo must restore both the
+  chip and the file path used by submission; redo must remove both.
+- Switch to another chat and back after undo: the other draft stays empty and
+  the source retains the restored reference. Typing a removed chip's private-use
+  token as plain text must not restore the attachment.
+- Automated by `pnpm test:e2e:composer-paste` (`fileReferenceUndoRedo`).
+
 ### Conversation Top Bar
 
 #### E2E-087: Conversation top bar renders on the chat route

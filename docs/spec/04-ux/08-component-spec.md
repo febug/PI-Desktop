@@ -3784,7 +3784,10 @@ remove a newly created BR only when removing that exact node makes the draft
 match the requested deletion. Never trim leading newlines or normalize all BRs.
 Remember proven placeholder nodes weakly so native redo cannot restore them.
 Explicit line breaks, IME composition, file references, and chip deletion retain
-their normal behavior. The input owns and disposes the native event listeners.
+their normal behavior. Native undo of chip deletion restores its file-reference metadata
+as well as its DOM, so submission and draft caching retain the path. Deleted
+reference history is local to the current draft/workspace and is cleared on send;
+pasting a private-use character alone must not restore an attachment. The input owns and disposes the native event listeners.
 
 ### Dialog long-text containment
 
