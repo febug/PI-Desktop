@@ -1235,7 +1235,10 @@ identify the platform validation still needed.
   and inspect the composer. 3) Type a different prompt in B, then switch back
   to A. 4) Create a new session and inspect its composer. 5) Return to B and
   then delete B; revisit the remaining sessions and the home composer if it is
-  available. 6) Type in A, open Settings (or Plugins), then return to chat.
+  available. 6) Type in A, add a workspace file through `@` and a pasted scratch
+  file, open Settings (or Plugins), then return to chat. Confirm both file chips
+  and the surrounding text remain. Change the workspace of the same draft and
+  confirm only its workspace-relative reference is removed.
   7) Hide the app window and show it again with an unsent draft in A.
 - **Expected**: B initially shows an empty composer, A restores its original
   unsent prompt, and the new session starts empty rather than inheriting A or
@@ -1250,7 +1253,9 @@ identify the platform validation still needed.
 - **Acceptance**: C (session isolation and composer input)
 - **Milestone**: M2
 - **Status**: Source-level regression covered
-  (`composer-draft-cache.test.mjs`); full UI scenario Draft
+  (`composer-draft-cache.test.mjs`); real React remount and workspace-change
+  coverage in `scripts/e2e/composer-paste.tsx` (`pnpm test:e2e:composer-paste`);
+  full UI scenario Draft
 
 #### E2E-011d: New task creates an immediate durable empty slot
 

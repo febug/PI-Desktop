@@ -2741,10 +2741,12 @@ reasoning-level control.
   session (D301). The cache is module-scoped, not instance state, so a remount
   — empty-home ↔ docked, chat ↔ Settings/Plugins/other pages, or the window
   hiding and showing — restores the same slot. Switching sessions saves the
-  source draft and restores the target draft; an uncached target and every
-  newly created session start empty. A pending paste retains the source
-  draft's existing file references even if saving finishes after a session switch.
-  The no-active-session home composer has
+  source draft and restores the target draft. Restoring a composer in the same
+  workspace must retain relative `@` file references as well as absolute scratch
+  attachments; workspace-reference cleanup runs only when the workspace changes.
+  An uncached target and every newly created session start empty. A pending paste
+  retains the source draft's existing file references even if saving finishes
+  after a session switch. The no-active-session home composer has
   its own slot. A successful send clears only the submitting session's slot,
   including when navigation occurs while the request is in flight, and
   deleting a session drops its slot. If the contenteditable DOM is wiped while
