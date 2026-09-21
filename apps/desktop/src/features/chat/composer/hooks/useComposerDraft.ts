@@ -165,7 +165,13 @@ export function useComposerDraft({
   const deletedReferencesRef = useRef(new Map<string, ComposerFileReference>());
   useEffect(() => {
     deletedReferencesRef.current.clear();
-  }, [draftKey, workspacePath]);
+    // Observe every transition, including A -> B -> A in one React batch.
+    return useAppStore.subscribe((state, previous) => {
+      if ((state.workspace?.path ?? "") !== (previous.workspace?.path ?? "")) {
+        deletedReferencesRef.current.clear();
+      }
+    });
+  }, [draftKey]);
 
   const reconcileEditorReferences = (text: string) => {
     const current = fileReferencesRef.current;
