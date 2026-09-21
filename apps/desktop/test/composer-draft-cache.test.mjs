@@ -7,6 +7,9 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   HOME_DRAFT_KEY,
+  getComposerWorkspaceRevision,
+  invalidateComposerWorkspace,
+  reconcileComposerWorkspace,
   adoptHomeDraftForSession,
   captureComposerDraft,
   deleteComposerDraft,
@@ -122,8 +125,8 @@ test("composer hydrates from the shared cache and persists across unmount and hi
   assert.match(composer, /persistDraft\(previousKey\)/);
   assert.match(composer, /flushScheduledHomeDraftAdopt\(draftKey\)/);
   assert.match(composer, /const nextDraft = readComposerDraft\(draftKey\)/);
-  assert.match(composer, /setValue\(nextDraft\?\.text \?\? ""\)/);
-  assert.match(composer, /setFileReferences\(\s*nextDraft\?\.fileReferences\.map/);
+  assert.match(composer, /setValue\(valueRef\.current\)/);
+  assert.match(composer, /setFileReferences\(fileReferencesRef\.current\)/);
   assert.doesNotMatch(composer, /new Map<string, ComposerDraftSnapshot>\(\)/);
   assert.doesNotMatch(composer, /draftCacheRef/);
 });
@@ -137,4 +140,48 @@ test("composer handles home drafts, deleted sessions, and async sends by key", (
   assert.match(composer, /const submittedDraftKey = draftKey/);
   assert.match(composer, /clearDraftForKey\(submittedDraftKey\)/);
   assert.doesNotMatch(composer, /if \(accepted\) clearDraft\(\);/);
+});
+
+
+test("workspace invalidation clears relative chips in every cached slot but keeps absolute attachments and text", () => {
+  const fileReferences = [
+    { path: "src/main.ts", name: "main.ts", token: "\uE001" },
+    { path: "/scratch/notes.txt", name: "notes.txt", token: "\uE002" },
+    { path: "C:\\scratch\\notes.txt", name: "notes.txt", token: "\uE003" },
+    { path: "\\\\server\\scratch\\notes.txt", name: "notes.txt", token: "\uE004" },
+    { path: "/scratch/image.png", name: "image.png", kind: "image" },
+  ];
+  for (const key of [HOME_DRAFT_KEY, "sess-a", "sess-b"]) {
+    writeComposerDraft(key, { text: "😀 \uE001 \uE002 \uE003 \uE004 unbound \uE005", fileReferences });
+  }
+  invalidateComposerWorkspace();
+  for (const key of [HOME_DRAFT_KEY, "sess-a", "sess-b"]) {
+    assert.deepEqual(readComposerDraft(key), {
+      text: "😀  \uE002 \uE003 \uE004 unbound \uE005",
+      fileReferences: fileReferences.slice(1),
+    });
+  }
+});
+
+test("late persistence and home adoption cannot resurrect references from an earlier workspace", () => {
+  const revision = getComposerWorkspaceRevision();
+  const references = [{ path: "src/main.ts", name: "main.ts", token: "\uE001" }];
+  invalidateComposerWorkspace();
+  invalidateComposerWorkspace(); // Away and back is still a different lifetime.
+  captureComposerDraft(HOME_DRAFT_KEY, "check \uE001", references, revision);
+  adoptHomeDraftForSession("sess-new");
+  assert.deepEqual(readComposerDraft("sess-new"), { text: "check ", fileReferences: [] });
+  writeComposerDraft("sess-late", { text: "check \uE001", fileReferences: references }, revision);
+  assert.deepEqual(readComposerDraft("sess-late"), { text: "check ", fileReferences: [] });
+  writeComposerDraft("sess-current", { text: "check \uE001", fileReferences: references });
+  assert.equal(readComposerDraft("sess-current").fileReferences.length, 1);
+});
+
+test("workspace cleanup adjusts a UTF-16 caret only for removed chip tokens", () => {
+  const revision = getComposerWorkspaceRevision();
+  invalidateComposerWorkspace();
+  const result = reconcileComposerWorkspace("😀 \uE001 x \uE001", [
+    { path: "src/main.ts", token: "\uE001" },
+  ], revision, 5);
+  assert.deepEqual(result, { text: "😀  x ", fileReferences: [], caret: 4 });
 });

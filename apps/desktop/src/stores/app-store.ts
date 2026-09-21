@@ -46,7 +46,7 @@ import {
 import { api } from "../lib/api";
 import type { SettingsTabId } from "../lib/settings-search";
 import { createNavigationIntentController } from "../lib/navigation-intent";
-import { scheduleHomeDraftAdopt } from "../lib/composer-draft-cache";
+import { invalidateComposerWorkspace, scheduleHomeDraftAdopt } from "../lib/composer-draft-cache";
 import {
   commitForkedSessionState,
   forkedSessionMessages,
@@ -744,6 +744,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
 /** Reconcile reading views and canonical caches at the same publication boundary. */
 useAppStore.subscribe((state, previous) => {
+  if ((state.workspace?.path ?? "") !== (previous.workspace?.path ?? "")) invalidateComposerWorkspace();
   transcriptReading.reconcile(state, previous);
   sessionRuntime.syncTranscriptProjection(state, previous);
 });

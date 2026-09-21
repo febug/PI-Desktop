@@ -21,6 +21,51 @@ export type ComposerDraftFileInput = {
 };
 
 const cache = new Map<string, ComposerDraftSnapshot>();
+// A -> B -> A is a new lifetime even when React batches the transitions.
+let workspaceRevision = 0;
+
+export const getComposerWorkspaceRevision = () => workspaceRevision;
+
+/** Paste/scratch files keep absolute paths; `@` entries are workspace-relative. */
+function isPersistedScratchReference(path: string): boolean {
+  return path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(path) || path.startsWith("\\\\");
+}
+
+/** Keep the draft's text and absolute attachments across a workspace change. */
+export function reconcileComposerWorkspace<T extends { path: string; token?: string }>(
+  text: string,
+  fileReferences: readonly T[],
+  sourceRevision: number,
+  caret = text.length,
+): { text: string; fileReferences: T[]; caret: number } {
+  if (sourceRevision === workspaceRevision) return { text, fileReferences: [...fileReferences], caret };
+  const droppedTokens = new Set(fileReferences
+    .filter((reference) => !isPersistedScratchReference(reference.path))
+    .flatMap((reference) => reference.token ? [reference.token] : []));
+  let nextText = "";
+  let nextCaret = caret;
+  let index = 0;
+  for (const char of text) {
+    if (droppedTokens.has(char)) {
+      if (index < caret) nextCaret -= char.length;
+    } else nextText += char;
+    index += char.length;
+  }
+  return {
+    text: nextText,
+    fileReferences: fileReferences.filter((reference) => isPersistedScratchReference(reference.path)),
+    caret: Math.max(0, Math.min(nextCaret, nextText.length)),
+  };
+}
+
+/** Called at the store publication boundary, including while Settings is open. */
+export function invalidateComposerWorkspace(): void {
+  const previousRevision = workspaceRevision++;
+  for (const [key, draft] of cache) {
+    const { text, fileReferences } = reconcileComposerWorkspace(draft.text, draft.fileReferences, previousRevision);
+    cache.set(key, { text, fileReferences });
+  }
+}
 
 export function draftKeyForSession(sessionId: string | null | undefined): string {
   return sessionId ?? HOME_DRAFT_KEY;
@@ -58,18 +103,21 @@ export function readComposerDraft(key: string): ComposerDraftSnapshot | undefine
 export function writeComposerDraft(
   key: string,
   snapshot: ComposerDraftSnapshot,
+  sourceRevision = workspaceRevision,
 ): void {
-  cache.set(key, snapshot);
+  const { text, fileReferences } = reconcileComposerWorkspace(snapshot.text, snapshot.fileReferences, sourceRevision);
+  cache.set(key, { text, fileReferences });
 }
 
 export function captureComposerDraft(
   key: string,
   text: string,
   fileReferences: readonly ComposerDraftFileInput[],
+  sourceRevision = workspaceRevision,
 ): ComposerDraftSnapshot {
   const snapshot = snapshotComposerDraft(text, fileReferences, key);
-  cache.set(key, snapshot);
-  return snapshot;
+  writeComposerDraft(key, snapshot, sourceRevision);
+  return cache.get(key)!;
 }
 
 export function deleteComposerDraft(key: string): void {

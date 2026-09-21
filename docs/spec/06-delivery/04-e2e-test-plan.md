@@ -1248,7 +1248,11 @@ identify the platform validation still needed.
   sessions, successful completion clears only the submitting session's draft
   and never clears the destination composer. The draft in A is still present
   after the Settings/Plugins round-trip and after the window is hidden and
-  shown (D301).
+  shown (D301). Changing projects in Settings removes relative workspace chips
+  on return, including A → B → A while the composer is unmounted, for both
+  home and session drafts. Absolute scratch references survive. A pending paste
+  finishing after that transition cannot resurrect the old workspace chips;
+  switching workspace and session together keeps the two draft slots isolated.
 - **Specs linked**: `04-ux/09-interaction-patterns.md`
 - **Acceptance**: C (session isolation and composer input)
 - **Milestone**: M2

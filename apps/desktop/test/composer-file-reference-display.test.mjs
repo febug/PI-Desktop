@@ -51,17 +51,7 @@ test("accepted files become compact references while directories keep completion
     /createFileReference\(\s*acceptedFileReference\.path,[\s\S]*?token,/,
   );
   assert.match(composer, /applyEditorDraft\(\s*nextText,/);
-  // Workspace switches still drop relative `@` chips, not every token-backed
-  // chip — paste/scratch paths are absolute and must survive.
-  assert.match(composer, /function isPersistedScratchReference\(path: string\)/);
-  assert.match(
-    composer,
-    /kept = current\.filter\(\(fileReference\) =>\s*isPersistedScratchReference\(fileReference\.path\)/,
-  );
-  assert.doesNotMatch(
-    composer,
-    /current\.filter\(\(fileReference\) => Boolean\(fileReference\.token\)\)/,
-  );
+
 });
 
 test("composer renders atomic inline chips and serializes paths on send", () => {

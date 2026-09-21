@@ -11,6 +11,7 @@ import {
   HOME_DRAFT_KEY,
   deleteComposerDraft,
   writeComposerDraft,
+  getComposerWorkspaceRevision,
 } from "../../../../lib/composer-draft-cache";
 import {
   composerDropItems,
@@ -107,6 +108,7 @@ export function useComposerAttachments({
       const sourceSessionId = activeSessionId;
       const sourceDraftKey = draftKey;
       const previousReferences = snapshotReferences(sourceSessionId ?? "");
+      const sourceWorkspaceRevision = getComposerWorkspaceRevision();
       // A picker action is real input, so a home draft gets a durable owner
       // before native paths are copied into scratch.
       const sessionId = sourceSessionId ?? (await materializeDraftSession());
@@ -141,10 +143,10 @@ export function useComposerAttachments({
           ...previousReferences,
           ...chips.map((chip) => toDraftReference(chip.reference)),
         ],
-      });
+      }, sourceWorkspaceRevision);
       const currentSessionId = useAppStore.getState().activeSessionId;
       if (currentSessionId === sessionId) {
-        draft.applyEditorDraft(nextText, nextReferences, selectionStart + inserted.length);
+        draft.applyEditorDraft(nextText, nextReferences, selectionStart + inserted.length, sourceWorkspaceRevision);
       } else if (sourceDraftKey === HOME_DRAFT_KEY) {
         deleteComposerDraft(HOME_DRAFT_KEY);
       }
@@ -174,6 +176,7 @@ export function useComposerAttachments({
       const sourceSessionId = activeSessionId;
       const sourceDraftKey = draftKey;
       const previousReferences = snapshotReferences(sourceSessionId ?? "");
+      const sourceWorkspaceRevision = getComposerWorkspaceRevision();
       setPasting(true);
       try {
         const payload = files.length
@@ -231,10 +234,10 @@ export function useComposerAttachments({
             ...previousReferences,
             ...chips.map((chip) => toDraftReference(chip.reference)),
           ],
-        });
+        }, sourceWorkspaceRevision);
         const currentSessionId = useAppStore.getState().activeSessionId;
         if (currentSessionId === sessionId) {
-          draft.applyEditorDraft(nextText, nextReferences, selectionStart + inserted.length);
+          draft.applyEditorDraft(nextText, nextReferences, selectionStart + inserted.length, sourceWorkspaceRevision);
         } else if (sourceDraftKey === HOME_DRAFT_KEY) {
           deleteComposerDraft(HOME_DRAFT_KEY);
         }
@@ -283,6 +286,7 @@ export function useComposerAttachments({
     const sourceSessionId = activeSessionId;
     const sourceDraftKey = draftKey;
     const previousReferences = snapshotReferences(sourceSessionId ?? "");
+    const sourceWorkspaceRevision = getComposerWorkspaceRevision();
     const fileItems = items.filter((item) => !item.isDirectory);
     setPasting(true);
     try {
@@ -345,10 +349,10 @@ export function useComposerAttachments({
           ...previousReferences,
           ...chips.map((chip) => toDraftReference(chip.reference)),
         ],
-      });
+      }, sourceWorkspaceRevision);
       const currentSessionId = useAppStore.getState().activeSessionId;
       if (currentSessionId === sessionId) {
-        draft.applyEditorDraft(nextText, nextReferences, selectionStart + inserted.length);
+        draft.applyEditorDraft(nextText, nextReferences, selectionStart + inserted.length, sourceWorkspaceRevision);
       } else if (sourceDraftKey === HOME_DRAFT_KEY && sessionId) {
         deleteComposerDraft(HOME_DRAFT_KEY);
       }

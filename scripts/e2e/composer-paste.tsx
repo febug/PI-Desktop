@@ -45,7 +45,7 @@ let controller: ComposerDraftController;
 let pastePending: Promise<unknown> | undefined;
 let submitted = 0;
 let rejectSubmission: () => Promise<void>;
-function Fixture({ sessionId, t, workspacePath }: { sessionId: string; t: TFunction; workspacePath: string }) {
+function Fixture({ sessionId, t, workspacePath }: { sessionId: string | null; t: TFunction; workspacePath: string }) {
   const draft = useComposerDraft({
     variant: "docked",
     activeSessionId: sessionId,
@@ -120,8 +120,8 @@ globalThis.composerPasteProbe = async () => {
     onUncaughtError: (error) => errors.push(error),
   });
   let key = 0;
-  const render = (sessionId = "paste-a", workspacePath = "") => {
-    useAppStore.setState({ activeSessionId: sessionId });
+  const render = (sessionId: string | null = "paste-a", workspacePath = "") => {
+    useAppStore.setState({ activeSessionId: sessionId, workspace: workspacePath ? { path: workspacePath, name: workspacePath } : null });
     flushSync(() =>
       root.render(<I18nextProvider i18n={i18n}><Fixture key={key} sessionId={sessionId} t={i18n.t} workspacePath={workspacePath} /></I18nextProvider>),
     );
@@ -216,6 +216,44 @@ globalThis.composerPasteProbe = async () => {
     flushSync(() => root.render(null));
     resetComposerDraftCache();
 
+    // Projects can change while Settings has unmounted the Composer. Cover
+    // home/session slots and switching away and back before returning to chat.
+    for (const sessionId of [null, "paste-a"]) {
+      for (const returnToOriginal of [false, true]) {
+        render(sessionId, "/project-a");
+        const ownedReferences = references.map((reference) => ({ ...reference, sessionId: sessionId ?? "" }));
+        flushSync(() => controller.applyEditorDraft(referenceDraft, ownedReferences, referenceDraft.length));
+        await new Promise(requestAnimationFrame);
+        flushSync(() => root.render(null));
+        useAppStore.setState({ workspace: { path: "/project-b", name: "B" } });
+        if (returnToOriginal) useAppStore.setState({ workspace: { path: "/project-a", name: "A" } });
+        render(sessionId, returnToOriginal ? "/project-a" : "/project-b");
+        await new Promise(requestAnimationFrame);
+        assert(readEditorValue(controller.ref.current!) === "Check  and \uE002",
+          `unmounted workspace change retained a stale chip (session=${sessionId}, return=${returnToOriginal})`);
+        assert(controller.fileReferences.length === 1 && controller.fileReferences[0].path === references[1].path,
+          "unmounted workspace change must preserve scratch references");
+        flushSync(() => root.render(null));
+        resetComposerDraftCache();
+      }
+    }
+
+    // A project switch and chat switch can be published together. Neither
+    // draft may inherit references or text from the other session.
+    render("paste-a", "/project-a");
+    flushSync(() => controller.applyEditorDraft(referenceDraft, references, referenceDraft.length));
+    await new Promise(requestAnimationFrame);
+    render("paste-b", "/project-b");
+    await new Promise(requestAnimationFrame);
+    assert(controller.value === "" && controller.fileReferences.length === 0,
+      "combined workspace/session switch copied the outgoing draft");
+    render("paste-a", "/project-b");
+    await new Promise(requestAnimationFrame);
+    assert(controller.value === "Check  and \uE002" && controller.fileReferences.length === 1,
+      "combined workspace/session switch lost scratch or retained relative references");
+    flushSync(() => root.render(null));
+    resetComposerDraftCache();
+
     // Keep the source attachment snapshot when a paste finishes in another session.
     await reset("keep \uE010 ", 7, 7);
     const originalReference = createFileReference("/scratch/paste-a/original.txt", "original.txt", "paste-a", { token: "\uE010", kind: "file" });
@@ -245,6 +283,36 @@ globalThis.composerPasteProbe = async () => {
         "PENDING_PASTE_SESSION_SWITCH lost original attachment: " + JSON.stringify({ names, text: readEditorValue(controller.ref.current!), visible: controller.ref.current!.textContent }));
     } finally {
       releasePaste();
+      api.pasteFiles = originalPasteFiles;
+    }
+    // A late paste must not write back relative references invalidated while
+    // the Composer is unmounted, even after returning to the original project.
+    render("paste-a", "/project-a");
+    flushSync(() => controller.applyEditorDraft(referenceDraft, references, referenceDraft.length));
+    await new Promise(requestAnimationFrame);
+    let finishWorkspacePaste!: () => void;
+    const workspaceGate = new Promise<void>((resolve) => { finishWorkspacePaste = resolve; });
+    let workspacePasteStarted = false;
+    api.pasteFiles = async () => {
+      workspacePasteStarted = true;
+      await workspaceGate;
+      return { files: [{ path: "/scratch/paste-a/new.txt", name: "new.txt", kind: "file", mimeType: "text/plain" }] };
+    };
+    try {
+      const pending = dispatchPaste(controller.ref.current!, "", [new File(["new"], "new.txt", { type: "text/plain" })]);
+      while (!workspacePasteStarted) await new Promise(requestAnimationFrame);
+      flushSync(() => root.render(null));
+      useAppStore.setState({ workspace: { path: "/project-b", name: "B" } });
+      useAppStore.setState({ workspace: { path: "/project-a", name: "A" } });
+      finishWorkspacePaste();
+      await pending;
+      render("paste-a", "/project-a");
+      await new Promise(requestAnimationFrame);
+      assert(!controller.value.includes("\uE001") && controller.fileReferences.length === 2 &&
+        controller.fileReferences.every((reference) => reference.path.startsWith("/scratch/")),
+        "late paste resurrected an invalidated workspace reference or lost scratch files");
+    } finally {
+      finishWorkspacePaste();
       api.pasteFiles = originalPasteFiles;
     }
     const nativeFiles = Array.from(
@@ -723,6 +791,8 @@ globalThis.composerPasteProbe = async () => {
       nativeMultipleFiles: true,
       selectionAndSessionDrafts: true,
       workspaceReferencesAcrossRemount: true,
+      unmountedWorkspaceChanges: true,
+      pendingPasteAcrossWorkspaceChange: true,
       pendingPasteAcrossSessionSwitch: true,
     };
   } finally {

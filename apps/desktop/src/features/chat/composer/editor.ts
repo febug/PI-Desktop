@@ -15,11 +15,6 @@ const SHEET_FILE_PATTERN = /\.(csv|ods|xls|xlsx)$/i;
 const AUDIO_FILE_PATTERN = /\.(flac|m4a|mp3|ogg|wav|webm)$/i;
 const VIDEO_FILE_PATTERN = /\.(avi|mkv|m4v|mov|mp4|webm)$/i;
 
-/** Paste/scratch files keep absolute paths; `@` entries are workspace-relative. */
-export function isPersistedScratchReference(path: string): boolean {
-  return path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(path) || path.startsWith("\\\\");
-}
-
 export function isImageFilePath(path: string): boolean {
   return /\.(avif|bmp|gif|heic|jpe?g|png|tiff?|webp)$/i.test(path);
 }

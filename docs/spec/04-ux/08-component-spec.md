@@ -2743,7 +2743,11 @@ reasoning-level control.
   hiding and showing — restores the same slot. Switching sessions saves the
   source draft and restores the target draft. Restoring a composer in the same
   workspace must retain relative `@` file references as well as absolute scratch
-  attachments; workspace-reference cleanup runs only when the workspace changes.
+  attachments. Any workspace-path change invalidates relative references in all
+  cached drafts, including changes made in Settings while the composer is
+  unmounted and changes away and back. Absolute scratch attachments and ordinary
+  text remain. Late persistence and attachment completion cannot restore stale
+  relative references from an earlier workspace lifetime.
   An uncached target and every newly created session start empty. A pending paste
   retains the source draft's existing file references even if saving finishes
   after a session switch. The no-active-session home composer has
