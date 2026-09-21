@@ -1481,8 +1481,11 @@ identify the platform validation still needed.
   or Agent|Plan|Goal mode control. The
   left-of-input Composer chip owns the active session's Agent/Plan/Goal switch,
   and the Composer-right combined chip owns model and reasoning selection. The
-  task title is the only visible title text and is capped at 10 characters
-  with an ellipsis; project scope is available through its tooltip. The sidebar
+  task title is the only visible title text and uses the available width,
+  with an ellipsis only on overflow. Check an English title longer than 10
+  characters in wide and narrow layouts, with the sidebar expanded/collapsed
+  and the work panel open/closed; titles must not overlap the action buttons.
+  The complete title and project scope remain available through its tooltip. The sidebar
   toggle is present only in the collapsed state (no
   duplicate of the sidebar's control). On every other route the frameless drag
   band renders instead (no chat top-bar controls) while retaining the same

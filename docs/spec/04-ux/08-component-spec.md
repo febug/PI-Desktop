@@ -319,7 +319,7 @@ combined model × reasoning selection (§11).
 
 | Element | Default | Running | Error | No workspace |
 |---|---|---|---|---|
-| Task title | session title (or untitled), capped at 10 characters with an ellipsis when needed | same | same | same |
+| Task title | session title (or untitled), uses the available width, with an ellipsis only on overflow | same | same | same |
 | New task / Search | icon buttons | same | same | same |
 | Composer stop control | hidden | visible only when the running composer draft is empty | hidden | hidden |
 | Project name | title tooltip only | same | same | omitted |
