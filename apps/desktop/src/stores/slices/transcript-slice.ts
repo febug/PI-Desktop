@@ -110,8 +110,8 @@ export function createTranscriptSlice({
       await get().editUserMessage(root.id, root.content, root.attachments);
     },
 
-    prepareUserMessageEdit: async (messageId) => {
-      const prepared = await prepareTranscriptAction({ get, set }, runtime, messageId);
+    prepareUserMessageEdit: async (messageId, signal) => {
+      const prepared = await prepareTranscriptAction({ get, set }, runtime, messageId, signal);
       const state = get();
       if (!prepared || state.activeSessionId !== prepared.activeSessionId || state.isRunning) return null;
       const message = state.messages.find((candidate) => candidate.id === messageId);

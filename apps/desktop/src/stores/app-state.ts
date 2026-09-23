@@ -229,7 +229,7 @@ export type AppState = {
   compactContext: () => Promise<void>;
   retryAssistantMessage: (messageId: string) => Promise<void>;
   /** Read canonical text before opening a user-message editor. */
-  prepareUserMessageEdit: (messageId: string) => Promise<UiMessage | null>;
+  prepareUserMessageEdit: (messageId: string, signal?: AbortSignal) => Promise<UiMessage | null>;
   /** Replace a user prompt and regenerate from it. */
   editUserMessage: (
     messageId: string,

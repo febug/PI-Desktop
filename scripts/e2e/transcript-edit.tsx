@@ -42,7 +42,7 @@ export async function transcriptEditProbe() {
   const toasts: string[] = [];
   api.prompt = async (input) => { sent.push(input); return { accepted: true }; };
   try {
-    for (const scenario of ["long", "slash", "read-failure", "switch"] as const) {
+    for (const scenario of ["long", "slash", "read-failure", "switch", "round-trip"] as const) {
       const canonical = scenario === "slash" ? { ...full, command: "/review logs" } : full;
       let finish!: () => void;
       const readGate = new Promise<void>((resolve) => { finish = resolve; });
@@ -62,10 +62,24 @@ export async function transcriptEditProbe() {
       await painted();
       assert(!host.querySelector(".message-edit-input"), "Edit must wait for full text instead of exposing clipped display text");
       if (scenario === "switch") flushSync(() => useAppStore.setState({ activeSessionId: "other-chat" }));
+      const originalMessages = useAppStore.getState().messages;
+      if (scenario === "round-trip") flushSync(() => {
+        // Retained panes can return with the exact same message-array identity.
+        useAppStore.setState({ activeSessionId: "other-chat" });
+        useAppStore.setState({ activeSessionId: sessionId, messages: originalMessages });
+      });
       finish();
       await painted();
       await painted();
-      const editor = host.querySelector<HTMLTextAreaElement>(".message-edit-input");
+      let editor = host.querySelector<HTMLTextAreaElement>(".message-edit-input");
+      if (scenario === "round-trip") {
+        assert(!editor, "A→B→A must invalidate the pending edit even when the message array is unchanged");
+        assert(useAppStore.getState().messages === originalMessages, "cancelled edit must not publish stale history");
+        host.querySelector<HTMLButtonElement>('[aria-label="Edit and resend"]')!.click();
+        await painted();
+        await painted();
+        editor = host.querySelector<HTMLTextAreaElement>(".message-edit-input");
+      }
       if (scenario === "read-failure" || scenario === "switch") {
         assert(!editor, `${scenario}: stale or failed read must not open an editor`);
         continue;
@@ -86,7 +100,7 @@ export async function transcriptEditProbe() {
         "editing must preserve image attachments");
     }
     assert(toasts.includes("fixture read failed"), "failed hydration must remain visible");
-    return { fullTextAndResend: true, slashSeed: true, failedRead: true, sessionSwitch: true };
+    return { fullTextAndResend: true, slashSeed: true, failedRead: true, sessionSwitch: true, roundTripNavigation: true };
   } finally {
     flushSync(() => root.unmount());
     host.remove();

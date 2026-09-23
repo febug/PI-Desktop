@@ -4740,7 +4740,9 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
   clarification. The editor and outgoing request must retain the final log
   lines, without a display truncation marker. A failed full-history read must
   show an error without opening a clipped editor; switching chats while the
-  read is pending must not open a stale editor. Automated coverage also
+  read is pending, including A→B→A with the same retained message array, must
+  not open a stale editor or publish stale history. A fresh Edit after returning
+  must still load the complete text and resend successfully. Automated coverage also
   preserves attachments and the typed slash-command seed.
 
 #### E2E-069: Platform-specific sidebar header behavior

@@ -1,6 +1,8 @@
 import {
   memo,
   useMemo,
+  useEffect,
+  useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
 } from "react";
@@ -55,6 +57,8 @@ export const MessageRow = memo(function MessageRow({
     (editableUserMessage && message.command) || (message.content || "");
   const [editing, setEditing] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const editRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => editRequest.current?.abort(), []);
   const [editValue, setEditValue] = useState(editSeed);
   const [retryingEdit, setRetryingEdit] = useState(false);
   const copyLabel = t("chat.copy");
@@ -79,14 +83,30 @@ export const MessageRow = memo(function MessageRow({
   }, [message.attachments, message.content, workspaceRoot]);
   const beginEdit = async () => {
     if (!editableUserMessage || isRunning || loadingEdit) return;
+    const request = new AbortController();
+    editRequest.current?.abort();
+    editRequest.current = request;
     setLoadingEdit(true);
+    // Subscribe synchronously: React can batch A→B→A into a single render.
+    const unsubscribe = useAppStore.subscribe((state, previous) => {
+      if (state.activeSessionId !== previous.activeSessionId ||
+        state.selectingSessionId !== previous.selectingSessionId) request.abort();
+    });
+    request.signal.addEventListener("abort", () => {
+      unsubscribe();
+      if (editRequest.current === request) setLoadingEdit(false);
+    }, { once: true });
     try {
-      const full = await prepareUserMessageEdit(message.id);
-      if (!full) return;
+      const full = await prepareUserMessageEdit(message.id, request.signal);
+      if (!full || request.signal.aborted || editRequest.current !== request) return;
       setEditValue(full.command || full.content || "");
       setEditing(true);
     } finally {
-      setLoadingEdit(false);
+      unsubscribe();
+      if (editRequest.current === request) {
+        editRequest.current = null;
+        setLoadingEdit(false);
+      }
     }
   };
   const cancelEdit = () => {
