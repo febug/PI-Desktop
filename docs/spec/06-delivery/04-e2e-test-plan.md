@@ -9344,6 +9344,13 @@ This test plan spec is accepted when:
 - **Milestone**: M5
 - **Status**: Draft (unit coverage active; desktop journey pending)
 
+- **Request transition regression**: Keep a one-question request pending in chat
+  B. In chat A, advance a two-question request to question two, then select B.
+  B must show its first question with fresh answer state and a usable composer,
+  without rendering the application error screen. Also queue two requests in
+  one session: submit the first, answer the second differently, and verify both
+  resolutions contain their own request IDs and selected values.
+
 #### E2E-124: Window controls minimize to the taskbar and close to the chosen surface
 
 - **Preconditions**: Built desktop app on macOS, Windows, and Linux; English
