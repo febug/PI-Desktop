@@ -228,6 +228,8 @@ export type AppState = {
   applyQueueChanged: (event: AgentQueueChangedEvent) => void;
   compactContext: () => Promise<void>;
   retryAssistantMessage: (messageId: string) => Promise<void>;
+  /** Read canonical text before opening a user-message editor. */
+  prepareUserMessageEdit: (messageId: string) => Promise<UiMessage | null>;
   /** Replace a user prompt and regenerate from it. */
   editUserMessage: (
     messageId: string,

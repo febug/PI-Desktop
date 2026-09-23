@@ -40,6 +40,7 @@ export const MessageRow = memo(function MessageRow({
   const { t } = useTranslation();
   const openTranscriptMenu = useTranscriptMenu();
   const { copyText, selectText } = useChatTextActions();
+  const prepareUserMessageEdit = useAppStore((s) => s.prepareUserMessageEdit);
   const editUserMessage = useAppStore((s) => s.editUserMessage);
   const activateMessageRevision = useAppStore((s) => s.activateMessageRevision);
   const deleteMessage = useAppStore((s) => s.deleteMessage);
@@ -53,6 +54,7 @@ export const MessageRow = memo(function MessageRow({
   const editSeed =
     (editableUserMessage && message.command) || (message.content || "");
   const [editing, setEditing] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
   const [editValue, setEditValue] = useState(editSeed);
   const [retryingEdit, setRetryingEdit] = useState(false);
   const copyLabel = t("chat.copy");
@@ -75,6 +77,18 @@ export const MessageRow = memo(function MessageRow({
     );
     return attachments.filter((attachment) => !inline.has(attachment.ref));
   }, [message.attachments, message.content, workspaceRoot]);
+  const beginEdit = async () => {
+    if (!editableUserMessage || isRunning || loadingEdit) return;
+    setLoadingEdit(true);
+    try {
+      const full = await prepareUserMessageEdit(message.id);
+      if (!full) return;
+      setEditValue(full.command || full.content || "");
+      setEditing(true);
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
   const cancelEdit = () => {
     setEditValue(editSeed);
     setEditing(false);
@@ -103,16 +117,13 @@ export const MessageRow = memo(function MessageRow({
         selectTarget: event.currentTarget.querySelector<HTMLElement>(
           editing ? ".message-edit-input" : ".message-bubble",
         ),
-        editable: editableUserMessage && !editing,
+        editable: editableUserMessage && !editing && !loadingEdit,
         running: isRunning,
         revision: !editing && showRevisionPager
           ? { count: revisionCount, active: activeRevision }
           : null,
         actions: { copyText, selectText },
-        onEdit: () => {
-          setEditValue(editSeed);
-          setEditing(true);
-        },
+        onEdit: () => void beginEdit(),
         onDelete: () => void deleteMessage(message.id),
         onActivateRevision: (index) =>
           void activateMessageRevision(message.id, index),
@@ -282,11 +293,8 @@ export const MessageRow = memo(function MessageRow({
                 className="copy-btn icon"
                 tooltip={editLabel}
                 ariaLabel={editLabel}
-                disabled={isRunning}
-                onClick={() => {
-                  setEditValue(editSeed);
-                  setEditing(true);
-                }}
+                disabled={isRunning || loadingEdit}
+                onClick={() => void beginEdit()}
               >
                 <IconPencil size={13} />
               </TooltipButton>

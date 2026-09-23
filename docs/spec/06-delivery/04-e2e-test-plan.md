@@ -4735,6 +4735,14 @@ must keep splitting are covered by `markdown-blocks.test.mjs`.
 - **Milestone**: M5
 - **Status**: Unit-covered (`transcript-style.test.mjs`); full UI scenario Draft
 
+- **Long-message regression**: Send a log longer than 65,536 characters as
+  message text, reopen the saved chat, then Edit and resend with a short
+  clarification. The editor and outgoing request must retain the final log
+  lines, without a display truncation marker. A failed full-history read must
+  show an error without opening a clipped editor; switching chats while the
+  read is pending must not open a stale editor. Automated coverage also
+  preserves attachments and the typed slash-command seed.
+
 #### E2E-069: Platform-specific sidebar header behavior
 
 - **Preconditions**: PI-Desktop is open with the expanded sidebar and a chat
