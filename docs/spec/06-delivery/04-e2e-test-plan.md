@@ -2292,6 +2292,13 @@ identify the platform validation still needed.
 
 #### E2E-036: Localized import grouping starts collapsed
 
+- **Tab accessibility**: Switch between the four import kinds in English and
+  Chinese. Each selected tab keeps its stable `import-tab-*` id and points to
+  the matching `import-panel-*` through `aria-controls`; that panel points
+  back through `aria-labelledby`. Inactive panels remain hidden and preserve
+  their existing state. The shared selection/link contract is covered by
+  `apps/desktop/test/segmented-control.test.mjs`, with page wiring checked in
+  `apps/desktop/test/settings-import-page.test.mjs`.
 - **Preconditions**: Supported local agent stores contain importable sessions across at least two project paths and two sources, including one session without a project path; the app can be launched once with an English system locale and once with a Simplified Chinese system locale.
 - **Steps**: 1) Launch in English and open Settings → Import. 2) Scan for sessions. 3) Inspect the initial source groups. 4) Expand one group and select a session. 5) Change Group by to Project path. 6) Switch back to Source. 7) Repeat the flow after launching with a Simplified Chinese system locale.
 - **Expected**: Source/来源 is the initial grouping; all groups are collapsed after the scan and after either grouping change; project-path mode shows exact project paths and a final No project/未关联项目 group; expanding one group leaves the others collapsed; the selected session remains selected across grouping changes; counts, dates, selection labels, accessible names, and the import result use the active locale without raw keys or unresolved double-brace placeholders. A Codex archive above the scan threshold may show an em dash for its unknown message count during review, but it remains selectable and the later import converts the complete transcript. A Codex archive with more than 250 session files shows only the newest 250 by folder date plus a localized cap note; older Codex sessions are absent from that scan.
@@ -13060,7 +13067,9 @@ browser milestones are scheduled.
   Projects and Info with an Experimental badge. 3) Open it and confirm the page
   title carries the same badge, with a host inventory and one Add form
   (SSH / Pair) and no instructional copy. 4) Switch Add to Pair and back to
-  SSH; confirm both forms stay filled. 5) Disable developer mode while the
+  SSH; confirm both forms stay filled and each tab's `aria-controls` points
+  to its panel, whose `aria-labelledby` points back to that tab. Repeat the
+  association check after changing the interface language. 5) Disable developer mode while the
   destination is open and confirm the page returns to General and the rail row
   is gone.
 - **Expected**: The whole destination is marked Experimental and is reachable
