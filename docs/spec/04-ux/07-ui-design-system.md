@@ -929,9 +929,9 @@ The composer renders only controls connected to the active pi session:
   apply without leaving the root. Tick labels are not tab stops — the range
   input is the accessible control. Each entry replaces
   the menu contents in-place with a back row and its submenu. The Model
-  submenu contains search plus sticky provider groups. Each model row begins
-  at one tab stop beneath its provider heading, making the provider → model
-  hierarchy legible without altering the model label. The Reasoning submenu
+  submenu contains search plus sticky provider groups. Model rows use compact 8px left padding and smaller, normal-weight text
+  beneath stronger provider headings, preserving the provider → model
+  hierarchy without altering the model label. The Reasoning submenu
   lists `omit` then the enabled levels as radio rows with a selected-row
   check; selecting from the list returns to the root without dismissing the
   popover.
@@ -1233,11 +1233,13 @@ Implementation: `components/ui.tsx → SegmentedControl<T>`.
 | Roles | `radiogroup` (default), `group`, or `tablist` |
 | Item roles | `radio` / none / `tab` — derived from container role |
 | Generic | `<T extends string>` for type-safe value/onChange |
-| Options | `readonly { value: T; label: ReactNode }[]` — label accepts JSX (e.g. count badge) |
+| Options | `readonly { value: T; label: ReactNode; id?: string; controls?: string }[]` — label accepts JSX (e.g. count badge) |
 
 Every multi-option selector rendered as a row of equal buttons **must** use
 `SegmentedControl`. Inline `<div className="settings-segment">` with manual
 button loops is prohibited.
+
+For `tablist`, options may supply a stable `id` and `controls` (the panel ID). Tabs expose `aria-controls`; panels reference the tab ID through `aria-labelledby`. IDs must not depend on translated labels.
 
 ### 11.11 Checkbox
 
