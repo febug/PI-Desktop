@@ -1235,11 +1235,14 @@ Implementation: `components/ui.tsx → SegmentedControl<T>`.
 | Generic | `<T extends string>` for type-safe value/onChange |
 | Options | `readonly { value: T; label: ReactNode; id?: string; controls?: string }[]` — label accepts JSX (e.g. count badge) |
 
+Tablist callers supply stable option `id` and `controls` values to connect
+each tab to its panel through `aria-controls` and the panel's
+`aria-labelledby`. These identifiers must not depend on translated labels.
+Import and Remote Hosts preserve these links when switching tabs or language.
+
 Every multi-option selector rendered as a row of equal buttons **must** use
 `SegmentedControl`. Inline `<div className="settings-segment">` with manual
 button loops is prohibited.
-
-For `tablist`, options may supply a stable `id` and `controls` (the panel ID). Tabs expose `aria-controls`; panels reference the tab ID through `aria-labelledby`. IDs must not depend on translated labels.
 
 ### 11.11 Checkbox
 

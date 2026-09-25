@@ -534,8 +534,8 @@
   text-transform: none;
 }
 
-/* Compact rows align with the provider heading. Smaller normal-weight text
-   keeps the provider heading as the visual anchor. */
+/* Model rows share the provider heading's compact inset. Normal-weight option
+   text stays distinct from the stronger provider heading. */
 .composer-model-group .composer-model-option {
   padding-left: 8px;
   font-size: var(--text-sm);

@@ -719,12 +719,7 @@ export function SegmentedControl<T extends string>({
           key={option.value}
           type="button"
           {...(itemRole === "tab"
-            ? {
-                role: "tab",
-                id: option.id ?? `${label}-tab-${option.value}`,
-                "aria-controls": option.controls,
-                "aria-selected": value === option.value,
-              }
+            ? { role: "tab", id: option.id ?? `${label}-tab-${option.value}`, "aria-controls": option.controls, "aria-selected": value === option.value }
             : itemRole === "radio"
               ? { role: "radio", "aria-checked": value === option.value }
               : { "aria-pressed": value === option.value })}

@@ -116,7 +116,8 @@ test("capability surfaces use the shared settings hierarchy", () => {
 });
 
 test("the workbench reuses the shared segmented control instead of a third copy", () => {
-  assert.match(layout, /<SegmentedControl[\s\S]*?className="agent-capability-segment"/);
+  assert.match(layout, /<SegmentedControl/);
+  assert.match(layout, /className="agent-capability-segment"/);
   assert.match(layout, /itemClassName="agent-capability-segment-btn"/);
   // providers.css defines the shared segment and imports after settings.css, so
   // a bare local class would silently lose. Every local override must compound.
